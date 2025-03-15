@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AES Encryption Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        .demo-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        .result {
+            font-family: monospace;
+            background-color: #eee;
+            padding: 10px;
+            border-radius: 3px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 0;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        input, select {
+            padding: 8px;
+            margin: 5px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        label {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>AES Encryption Demo</h1>
+    <p>This demo shows how to use the AES encryption library with JavaScript.</p>
+    
+    <div class="demo-section">
+        <h2>String Encryption</h2>
+        <div>
+            <label for="string-input">Text to encrypt:</label>
+            <input type="text" id="string-input" value="Hello, this is a secret message!">
+        </div>
+        <div>
+            <label for="string-key">Key (16 chars):</label>
+            <input type="text" id="string-key" value="MySecretKey12345">
+        </div>
+        <div>
+            <label for="string-iv">IV (16 chars):</label>
+            <input type="text" id="string-iv" value="InitVector123456">
+        </div>
+        <button id="encrypt-string-btn">Encrypt</button>
+        <button id="decrypt-string-btn">Decrypt</button>
+        <div>
+            <label>Result:</label>
+            <div id="string-result" class="result">Results will appear here</div>
+        </div>
+    </div>
+    
+    <div class="demo-section">
+        <h2>Number Encryption</h2>
+        <div>
+            <label for="number-input">Number to encrypt:</label>
+            <input type="number" id="number-input" value="12345">
+        </div>
+        <div>
+            <label for="number-type">Number type:</label>
+            <select id="number-type">
+                <option value="int">Integer</option>
+                <option value="float">Float</option>
+                <option value="long">Long Integer</option>
+            </select>
+        </div>
+        <div>
+            <label for="number-key">Key (16 chars):</label>
+            <input type="text" id="number-key" value="MySecretKey12345">
+        </div>
+        <div>
+            <label for="number-iv">IV (16 chars):</label>
+            <input type="text" id="number-iv" value="InitVector123456">
+        </div>
+        <button id="encrypt-number-btn">Encrypt</button>
+        <button id="decrypt-number-btn">Decrypt</button>
+        <div>
+            <label>Result:</label>
+            <div id="number-result" class="result">Results will appear here</div>
+        </div>
+    </div>
+    
+    <script src="aes_encryption.js"></script>
+    <script src="aes_wrapper.js"></script>
+    <script>
+        // Wait for the Emscripten module to be ready
+        Module.onRuntimeInitialized = function() {
+            console.log("AES Encryption module initialized");
+            document.getElementById("encrypt-string-btn").disabled = false;
+            document.getElementById("decrypt-string-btn").disabled = false;
+            document.getElementById("encrypt-number-btn").disabled = false;
+            document.getElementById("decrypt-number-btn").disabled = false;
+        };
+        
+        // Disable buttons until the module is ready
+        document.getElementById("encrypt-string-btn").disabled = true;
+        document.getElementById("decrypt-string-btn").disabled = true;
+        document.getElementById("encrypt-number-btn").disabled = true;
+        document.getElementById("decrypt-number-btn").disabled = true;
+        
+        // String encryption
+        let encryptedStringResult = "";
+        document.getElementById("encrypt-string-btn").addEventListener("click", function() {
+            const text = document.getElementById("string-input").value;
+            const key = document.getElementById("string-key").value;
+            const iv = document.getElementById("string-iv").value;
+            
+            try {
+                encryptedStringResult = encryptString(text, key, iv);
+                document.getElementById("string-result").textContent = 
+                    "Original: " + text + "\n" +
+                    "Encrypted (hex): " + encryptedStringResult;
+            } catch (error) {
+                document.getElementById("string-result").textContent = "Error: " + error.message;
+            }
+        });
+        
+        document.getElementById("decrypt-string-btn").addEventListener("click", function() {
+            const key = document.getElementById("string-key").value;
+            const iv = document.getElementById("string-iv").value;
+            
+            if (!encryptedStringResult) {
+                document.getElementById("string-result").textContent = "Please encrypt a string first";
+                return;
+            }
+            
+            try {
+                const decrypted = decryptString(encryptedStringResult, key, iv);
+                document.getElementById("string-result").textContent = 
+                    "Encrypted (hex): " + encryptedStringResult + "\n" +
+                    "Decrypted: " + decrypted;
+            } catch (error) {
+                document.getElementById("string-result").textContent = "Error: " + error.message;
+            }
+        });
+        
+        // Number encryption
+        let encryptedNumberResult = "";
+        document.getElementById("encrypt-number-btn").addEventListener("click", function() {
+            const value = parseFloat(document.getElementById("number-input").value);
+            const type = document.getElementById("number-type").value;
+            const key = document.getElementById("number-key").value;
+            const iv = document.getElementById("number-iv").value;
+            
+            try {
+                if (type === "int") {
+                    encryptedNumberResult = encryptInt(Math.floor(value), key, iv);
+                } else if (type === "float") {
+                    encryptedNumberResult = encryptFloat(value, key, iv);
+                } else if (type === "long") {
+                    encryptedNumberResult = encryptLong(Math.floor(value), key, iv);
+                }
+                
+                document.getElementById("number-result").textContent = 
+                    "Original (" + type + "): " + value + "\n" +
+                    "Encrypted (hex): " + encryptedNumberResult;
+            } catch (error) {
+                document.getElementById("number-result").textContent = "Error: " + error.message;
+            }
+        });
+        
+        document.getElementById("decrypt-number-btn").addEventListener("click", function() {
+            const type = document.getElementById("number-type").value;
+            const key = document.getElementById("number-key").value;
+            const iv = document.getElementById("number-iv").value;
+            
+            if (!encryptedNumberResult) {
+                document.getElementById("number-result").textContent = "Please encrypt a number first";
+                return;
+            }
+            
+            try {
+                let decrypted;
+                if (type === "int") {
+                    decrypted = decryptInt(encryptedNumberResult, key, iv);
+                } else if (type === "float") {
+                    decrypted = decryptFloat(encryptedNumberResult, key, iv);
+                } else if (type === "long") {
+                    decrypted = decryptLong(encryptedNumberResult, key, iv);
+                }
+                
+                document.getElementById("number-result").textContent = 
+                    "Encrypted (hex): " + encryptedNumberResult + "\n" +
+                    "Decrypted (" + type + "): " + decrypted;
+            } catch (error) {
+                document.getElementById("number-result").textContent = "Error: " + error.message;
+            }
+        });
+    </script>
+</body>
+</html> 
